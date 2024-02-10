@@ -3,7 +3,7 @@ import os
 import MineSweeper
 
 GRID_WIDTH = 15
-GAME = MineSweeper.Minesweeper(GRID_WIDTH, 40)  # 40% bombs, 10x10 grid
+GAME = MineSweeper.Minesweeper(GRID_WIDTH, 25)  # 40% bombs, 10x10 grid
 
 HEIGHT = 1000
 WIDTH = 1.1 * HEIGHT

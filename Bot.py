@@ -1,45 +1,72 @@
 from Logic import *
 from MineSweeper import Minesweeper
 
-
 class Bot(Minesweeper):
     def __init__(self, n, b):
-        self.boardKnowledge = [[Sentence() for _ in range(n)] for _ in range(n)]
+        self.bombBoardKnowledge = [[Sentence() for _ in range(n)] for _ in range(n)]
+        self.cleanBoardKnowledge = [[Sentence() for _ in range(n)] for _ in range(n)]
+
 
     def evalBoard(self, board):
         for i in range(len(board)):
             for j in range(len(board[i])):
-                if board[i][j] == "b":
-                    self.boardKnowledge[i][j] = self.evalCell(i, j, board)
+                self.evalCell(i, j, board)
 
     def evalCell(self, i, j, board):
+        self.bombBoardKnowledge[i][j] = self.bombKnowledge(i, j, board)
+        self.cleanBoardKnowledge[i][j] = self.cleanKnowledge(i, j, board)
+    
+    def logicallyPlaceFlag (self):
+        self.bestMove(self.bombBoardKnowledge)
+        self.placeSymbol()
+
+    def logicallyUncover (self):
+        self.bestMove(self.cleanBoardKnowledge)
+        ...
+
+    def bombKnowledge (self, i, j, board):
         adjacentValidMoves = self.adjacentValidMoves(board, i, j)
         possibleBombLocations = Or()
 
         for loc in adjacentValidMoves:
-            possibleBombLocations.add(loc)
-
+            sym = Symbol(self.symbolName(loc))
+            possibleBombLocations.add(sym) # bomb is on one of these places # ... for other than 1
+        
+        certainBombLocations = And()
+        for i in adjacentValidMoves:
+            if i == 'f':
+                sym=Symbol(self.symbolName(i))
+                certainBombLocations.add(i)
+        
         adjacentInvalidMoves = self.adjacentInvalidMoves(board, i, j)
-        impossibleBombLocations = And()
+        impossibleBombLocations = And() # bomb is not in any of these places
 
         for loc in adjacentInvalidMoves:
-            impossibleBombLocations.add(loc)
+            sym = Symbol(self.symbolName(loc))
+            impossibleBombLocations.add(sym)
 
-        cellKnowledge = And(possibleBombLocations, Not(impossibleBombLocations))
-        return cellKnowledge
-
-    def bestMove (self, board):
-        border_cells = self.adjacentsToBorderCells(board)
+        cellKnowledge = And(possibleBombLocations, Not(impossibleBombLocations), certainBombLocations)
+        return cellKnowledge   
+    
+    def cleanKnowledge (self, i, j, board):
+        #adjacentBombs = self.adjacentFlag
+        ...
+     
+    def bestMove (self, knowledgeBoard):
+        border_cells = self.adjacentsToBorderCells(knowledgeBoard)
         for cell in border_cells:
             # concat knowledge, first only from one cell, then from it and its adjacents with an adjustable max depth
-            all_knowledge = self.concatCellKnowledge(board, cell[0], cell[1])
+            all_knowledge = self.concatCellKnowledge(knowledgeBoard, cell[0], cell[1])
             for adj in self.adjacentCells(cell[0], cell[1]):
-                model_check(all_knowledge, )
-                if True:
-                    # return cell
-                    ...
-        ...
+                query = self.symbolName(adj)
+                if model_check(all_knowledge, query):
+                    return cell # coordinates
+        
+        return None
 
+    def symbolName (self, coordinates):
+        coordinates = (0, 0)
+        return f'{coordinates[0]}, {coordinates[1]}'
 
     def concatCellKnowledge (self, board, center_x, center_y, concat=And(), depth=0):
         if depth > 1:
