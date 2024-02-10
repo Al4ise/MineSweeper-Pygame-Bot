@@ -1,10 +1,13 @@
 import random
 from Logic import *
+import sharedMethods as s
+from Bot import Bot
 import random
 
 class Minesweeper:
-    def __init__(self, n, percentBombs, setBoard=None):  # nxn grid, b% bombs
+    def __init__(self, n, percentBombs, first_x=None, first_y=None, setBoard=None):  # nxn grid, b% bombs
         self.playing = True
+        self.won = False
 
         # contains flags and uncovered numbers
         self.playerBoard = [[0] * n for _ in range(n)]
@@ -17,20 +20,10 @@ class Minesweeper:
         else:
             self.n = n
             self.percentBombs = percentBombs
-            self.board = self.generateRandBoard(n, percentBombs)
-            #self.playerBoard=self.revealLongestWhitePath()
-
-    def adjacentCells(self, x, y):
-        return [
-            (x, y + 1),
-            (x, y - 1),
-            (x + 1, y),
-            (x - 1, y),
-            (x + 1, y + 1),
-            (x + 1, y - 1),
-            (x - 1, y + 1),
-            (x - 1, y - 1),
-        ]
+            if not(first_x and first_y):
+                self.board = self.generateRandBoard(n, percentBombs)
+            else:
+                self.board = self.generateSolvableaBoard(first_x, first_y)
 
     def generateRandBoard(self, n, percentBombs):
         board = [[0] * n for _ in range(n)]
@@ -44,12 +37,12 @@ class Minesweeper:
             board[cell[0]][cell[1]] = "b"
 
         # pick one cell at random which is not a bomb
-        board = self.evaluateBoard(board)
+        board = self.defineBoard(board)
 
         return board
     
 
-    def generateSolvableguraBoard(self, first_x, first_y): 
+    def generateSolvableaBoard(self, first_x, first_y): 
         board = self.generateRandBoard(self.n, self.percentBombs)
         if board[first_x][first_y] == 'b':
             random_cell=self.pick_random_clean_cell(board)
@@ -58,30 +51,48 @@ class Minesweeper:
                 board[first_x][first_y] = 0
         
         solved = False
+
         while not solved:
             board = self.cleanBoard(board)
-            board = self.evaluateBoard(board)
+            board = self.defineBoard(board)
             board = self.solveByDeduction(board)
-            ...
             solved = self.checkFull(board)
             if solved:
                 solved=True
             else:
                 # get adjacents of last revealed cells 
                 adj = self.adjacentBombsToBorderCells(board)
-                rand_adj = random.choice(adj) if adj else None
                 # swap one with a random 0
                 random_zero=self.pick_random_clean_cell(board)
                 if random_zero: 
                     board[random_zero[0]][random_zero[1]] = 'b'
                     board[first_x][first_y] = 0
-        return None
+        return board
 
     def checkSolvability (self, board):
         ...
 
     def adjustSolvability (self, board):
         ...
+
+    def solveByDeduction (self, bot):
+        bot=Bot(self.playerBoard)
+
+        success = True
+
+        while success == True or self.checkFull(s.returnPlayerBoard(bot)):
+            success = False
+            if bot.logicallyPlaceFlag():
+                success = True
+            else:
+                print("No certain Bombs")
+            
+            if bot.logicallyUncover():
+                success = True
+            else:
+                print("No certain Cleans")
+        
+        return s.returnPlayerBoard(self)
 
     def cleanBoard (self, board):
         b = board
@@ -91,7 +102,7 @@ class Minesweeper:
                     b[i][j] = 0
         return b
 
-    def evaluateBoard (self, board):
+    def defineBoard (self, board):
         for i in range(len(board)):
             for j in range(len(board[i])):
                 if board[i][j] != "b":
@@ -103,18 +114,9 @@ class Minesweeper:
                     board[i][j] = cellnumber
 
         return board
-        
-    def adjacentsToBorderCells(self, board):
-        zero_cells = self.zeroCells(board)
-        aobc = []
-        for cell in zero_cells:
-            for adj in self.adjacentCells(cell[0],cell[1]):
-                if self.inBounds(adj[0], adj[1]):
-                    aobc.append(adj)
-        return aobc
     
     def adjacentBombsToBorderCells (self, board):
-        aobc = self.adjacentsToBorderCells(board)
+        aobc = s.adjacentToBorderCells(self, board)
         abz = []
         for i in aobc:
             if i == 'b':
@@ -122,27 +124,14 @@ class Minesweeper:
         return abz
 
     def pick_random_clean_cell(self, board):
-        zero_cells = self.zeroCells(board)
+        zero_cells = s.zeroCells(board)
         if zero_cells:
             random_cell = random.choice(zero_cells)
             return random_cell
         return
 
-    def zeroCells (self, board):
-        zero_cells = []
-        for i in range(len(board)):
-            for j in range(len(board[i])):
-                if board[i][j] != 'b':
-                    zero_cells.append((i, j))
-        return zero_cells
-    
-    def inBounds(self, row, col):
-        if row < 0 or row >= self.n or col < 0 or col >= self.n:
-            return False
-        return True
-
     def incrementCellNumber(self, row, col, board): 
-        if self.inBounds(row, col) and board[row][col] == "b":
+        if s.inBounds(self, row, col) and board[row][col] == "b":
             return 1
         return 0
 
@@ -170,34 +159,6 @@ class Minesweeper:
         for i in range(len(self.board)):
             print(self.board[i])
 
-    def returnPlayerBoard(self):
-        return self.board
-
-    def placeSymbol(self, row, col, PLACEFLAG):
-        if PLACEFLAG == True:
-            if self.playerBoard[row][col] == "f":
-                # Remove Flag
-                self.playerBoard[row][col] = 0
-            else:
-                # Place Flag
-                self.playerBoard[row][col] = "f"
-        elif PLACEFLAG == False:
-            # Place Bomb
-            if self.board[row][col] == "b":
-                print("You lose!")
-                self.playing = False
-                self.won = False
-            elif self.board[row][col] == 0:
-                self.revealCell(row, col)
-                self.revealWhite(row, col)
-            else:
-                self.revealCell(row, col)
-
-            if self.checkFull():
-                print("You win!")
-                self.playing = False
-                self.won = True
-
     def revealWhite(self, row, col, depth=0, explored=set()):
         # if the cell is empty, reveal all adjacent cells
         if self.board[row][col] == 0:
@@ -211,10 +172,10 @@ class Minesweeper:
             return depth
             
     def emptyAdjCells(self, row, col):
-        adjCells = self.adjacentCells(row, col)
+        adjCells = s.adjacentCells(row, col)
         eac = []
         for i, j in adjCells:
-            if self.inBounds(i, j):
+            if s.inBounds(self, i, j):
                 if self.board[i][j] == 0:
                     eac.append((i, j))
         return eac
@@ -226,8 +187,8 @@ class Minesweeper:
             self.playerBoard[row][col] = self.board[row][col]
 
     def revealAdjacents(self, row, col):
-        for i, j in self.adjacentCells(row, col):
-            if self.inBounds(i, j):
+        for i, j in s.adjacentCells(row, col):
+            if s.inBounds(self, i, j):
                 self.revealCell(i, j)
 
     def didWin(self):

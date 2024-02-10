@@ -1,9 +1,11 @@
 import pygame
 import os
-import MineSweeper
+import MineSweeper as m
+import sharedMethods as s
 
 GRID_WIDTH = 15
-GAME = MineSweeper.Minesweeper(GRID_WIDTH, 25)  # 40% bombs, 10x10 grid
+PERCENTBOMBS = 25
+GAME = m.Minesweeper(GRID_WIDTH, PERCENTBOMBS)  # 40% bombs, 10x10 grid
 
 HEIGHT = 1000
 WIDTH = 1.1 * HEIGHT
@@ -26,10 +28,12 @@ FLAG = pygame.transform.scale(FLAG_IMAGE, (SYMBOL_WIDTH, SYMBOL_HEIGHT))
 
 
 def main():
+    GAME = m.Minesweeper(GRID_WIDTH, PERCENTBOMBS)  # 40% bombs, 10x10 grid
     pygame.font.init()
     clock = pygame.time.Clock()
     PLACEFLAG = True
     run = True
+    clicked = False
     while run:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -43,7 +47,10 @@ def main():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
+                if not clicked:
+                    GAME = handleFirstClick(x, y)                
                 handleClick(x, y, GAME, PLACEFLAG)
+                clicked = True
 
         if not GAME.playing:
             run = False
@@ -79,8 +86,14 @@ def handleClick(x, y, GAME, PLACEFLAG):
     i = int(x // SYMBOL_WIDTH)
     j = int(y // SYMBOL_HEIGHT)
 
-    GAME.placeSymbol(i, j, PLACEFLAG)
+    s.placeSymbol(GAME, i, j, PLACEFLAG)
 
+def handleFirstClick (x, y):
+    # find which cell was clicked
+    i = int(x // SYMBOL_WIDTH)
+    j = int(y // SYMBOL_HEIGHT)
+
+    return m.Minesweeper(GRID_WIDTH, PERCENTBOMBS, i, j)
 
 def alert_message(message):
     font = pygame.font.Font(None, 50)  # Set the font and size for the message text
