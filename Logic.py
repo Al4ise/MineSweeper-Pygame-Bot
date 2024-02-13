@@ -5,6 +5,7 @@ class Sentence:
 
     def evaluate(self, model):
         """Evaluates the logical sentence."""
+        return
         raise Exception("nothing to evaluate")
 
     def formula(self):

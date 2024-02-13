@@ -7,6 +7,7 @@ class Bot():
         self.playerBoard = playerBoard
         self.bombBoardKnowledge = [[Sentence() for _ in range(self.n)] for _ in range(self.n)]
         self.cleanBoardKnowledge = [[Sentence() for _ in range(self.n)] for _ in range(self.n)]
+        self.checked = []
 
     def evalBoard(self, board):
         for i in range(len(board)):
@@ -14,8 +15,10 @@ class Bot():
                 self.evalCell(i, j, board)
 
     def evalCell(self, i, j, board):
-        self.bombBoardKnowledge[i][j] = self.bombKnowledge(i, j, board)
-        self.cleanBoardKnowledge[i][j] = self.cleanKnowledge(i, j, board)
+        var = self.bombKnowledge(i, j, board)
+        if isinstance(var, Sentence):
+            self.bombBoardKnowledge[i][j] = var
+        #self.cleanBoardKnowledge[i][j] = self.cleanKnowledge(i, j, board)
     
     def logicallyPlaceFlag (self):
         cell = self.bestMove(self.bombBoardKnowledge)
@@ -35,28 +38,57 @@ class Bot():
 
 
     def bombKnowledge (self, i, j, board):
-        adjacentValidMoves = self.adjacentValidMoves(board, i, j)
+        adjacentValidMoves = self.adjacentValidMoves(self.playerBoard, i, j)
+
         possibleBombLocations = Or()
+        cellKnowledge = And()
 
         for loc in adjacentValidMoves:
             sym = Symbol(self.symbolName(loc))
             possibleBombLocations.add(sym) # bomb is on one of these places # ... for other than 1
         
         certainBombLocations = And()
-        for i in adjacentValidMoves:
-            if i == 'f':
-                sym=Symbol(self.symbolName(i))
-                certainBombLocations.add(i)
+        for p in adjacentValidMoves:
+            if p == 'f':
+                sym=Symbol(self.symbolName(p))
+                certainBombLocations.add(p)
         
-        adjacentInvalidMoves = self.adjacentInvalidMoves(board, i, j)
+        adjacentInvalidMoves = self.adjacentInvalidMoves(self.playerBoard, i, j)
         impossibleBombLocations = And() # bomb is not in any of these places
 
+        for loc in adjacentValidMoves:
+            if board[loc[0]][loc[1]] != 0:
+                sym = Symbol(self.symbolName(loc))
+                possibleBombLocations.add(sym)  
+            
         for loc in adjacentInvalidMoves:
-            sym = Symbol(self.symbolName(loc))
-            impossibleBombLocations.add(sym)
+            if board[loc[0]][loc[1]] != 0:
+                sym = Symbol(self.symbolName(loc))
+                impossibleBombLocations.add(sym)
 
-        cellKnowledge = And(possibleBombLocations, Not(impossibleBombLocations), certainBombLocations)
-        return cellKnowledge   
+        try:
+            tmp = possibleBombLocations.symbols()
+            cellKnowledge.add(possibleBombLocations)
+        except:
+            pass
+
+        try:
+            tmp = certainBombLocations.symbols()
+            cellKnowledge.add(certainBombLocations)
+        except:
+            pass
+
+        try:
+            tmp = impossibleBombLocations.symbols()
+            cellKnowledge.add(Not(impossibleBombLocations))
+        except:
+            pass
+
+        try:
+            tmp = cellKnowledge.symbols()
+            return cellKnowledge  
+        except:
+            return None
     
     def cleanKnowledge (self, i, j, board):
         adjacentValidMoves = self.adjacentValidMoves(board, i, j)
@@ -82,32 +114,44 @@ class Bot():
             # concat knowledge, first only from one cell, then from it and its adjacents with an adjustable max depth
             all_knowledge = self.concatCellKnowledge(knowledgeBoard, cell[0], cell[1])
             for adj in s.adjacentCells(cell[0], cell[1]):
-                query = self.symbolName(adj)
-                if model_check(all_knowledge, query):
-                    return cell # coordinates
-
+                name = self.symbolName(adj)
+                if name not in self.checked:
+                    query = Symbol(name)
+                    self.checked.append(name)
+                    if model_check(all_knowledge, query):
+                        return cell  # coordinates
         return None
 
     def dropCellNum (self, x, y):
         adj = s.adjacentCells(x, y)
+        try: 
+            num = int(self.playerBoard[x][y])
+        except:
+            return self.playerBoard[x][y]
+        
         for i, j in adj:
             if self.playerBoard[i][j] == 'f':
-                self.playerBoard[x][y] -= 1
+                self.playerBoard[x][y] = str(num-1)
         
     def symbolName (self, coordinates):
-        coordinates = (0, 0)
         return f'{coordinates[0]}, {coordinates[1]}'
 
     def concatCellKnowledge (self, knowledgeBoard, center_x, center_y, concat=And(), depth=0):
         if depth > 1:
             return concat
         else:
-            concat.add(knowledgeBoard[center_x][center_y])
+            c = knowledgeBoard[center_x][center_y]
+            if isinstance(c, Sentence):
+                concat.add(knowledgeBoard[center_x][center_y])
+            
             for i, j in s.adjacentCells(center_x, center_y):
-                self.evalCell(i, j, knowledgeBoard)
-                concat.add(knowledgeBoard[i][j])
-
-                self.concatCellKnowledge(knowledgeBoard, i, j, concat, depth+1)
+                if isinstance(c, Sentence):
+                    self.evalCell(i, j, knowledgeBoard)
+                    concat.add(knowledgeBoard[i][j])
+            
+            return concat
+            #self.concatCellKnowledge(knowledgeBoard, i, j, concat, depth+1) 
+        ...
 
     def adjacentValidMoves(self, board, x, y):
         adjacents = s.adjacentCells(x, y)

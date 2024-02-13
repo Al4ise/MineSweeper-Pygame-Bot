@@ -49,7 +49,7 @@ def adjacentCells(x, y):
         (x + 1, y + 1),
         (x + 1, y - 1),
         (x - 1, y + 1),
-        (x - 1, y - 1),
+        (x - 1, y - 1)
     ]
 
 def inBounds(self, row, col):
@@ -59,3 +59,7 @@ def inBounds(self, row, col):
 
 def returnPlayerBoard(self):
     return self.playerBoard
+
+def prinPlayerBoard(self):
+    for i in range(len(self.playerBoard)):
+        print(self.playerBoard[i])

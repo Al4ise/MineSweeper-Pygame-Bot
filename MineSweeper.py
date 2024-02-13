@@ -86,12 +86,14 @@ class Minesweeper:
                 success = True
             else:
                 print("No certain Bombs")
-            
+                
+            s.prinPlayerBoard(bot)
+
             if bot.logicallyUncover():
-                success = True
+                #success = True
+                ...
             else:
                 print("No certain Cleans")
-        
         return s.returnPlayerBoard(self)
 
     def cleanBoard (self, board):
@@ -150,10 +152,6 @@ class Minesweeper:
         for i in adjacents:
             cellnumber += int(self.incrementCellNumber(i[0], i[1], board))
         return cellnumber
-
-    def printPlayerBoard(self):
-        for i in range(len(self.playerBoard)):
-            print(self.playerBoard[i])
 
     def printBoard(self):
         for i in range(len(self.board)):
