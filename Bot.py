@@ -15,10 +15,13 @@ class Bot():
                 self.evalCell(i, j, board)
 
     def evalCell(self, i, j, board):
-        var = self.bombKnowledge(i, j, board)
+        var = self.bombKnowledge(i, j)
         if isinstance(var, Sentence):
             self.bombBoardKnowledge[i][j] = var
-        #self.cleanBoardKnowledge[i][j] = self.cleanKnowledge(i, j, board)
+        
+        var = self.cleanKnowledge(i, j)
+        if isinstance(var, Sentence):
+            self.cleanBoardKnowledge[i][j] = var
     
     def logicallyPlaceFlag (self):
         cell = self.bestMove(self.bombBoardKnowledge)
@@ -37,7 +40,7 @@ class Bot():
         return True
 
 
-    def bombKnowledge (self, i, j, board):
+    def bombKnowledge (self, i, j):
         adjacentValidMoves = self.adjacentValidMoves(self.playerBoard, i, j)
 
         possibleBombLocations = Or()
@@ -57,12 +60,12 @@ class Bot():
         impossibleBombLocations = And() # bomb is not in any of these places
 
         for loc in adjacentValidMoves:
-            if board[loc[0]][loc[1]] != 0:
+            if self.playerBoard[loc[0]][loc[1]] != 0:
                 sym = Symbol(self.symbolName(loc))
                 possibleBombLocations.add(sym)  
             
         for loc in adjacentInvalidMoves:
-            if board[loc[0]][loc[1]] != 0:
+            if self.playerBoard[loc[0]][loc[1]] != 0:
                 sym = Symbol(self.symbolName(loc))
                 impossibleBombLocations.add(sym)
 
@@ -90,30 +93,59 @@ class Bot():
         except:
             return None
     
-    def cleanKnowledge (self, i, j, board):
-        adjacentValidMoves = self.adjacentValidMoves(board, i, j)
+    def cleanKnowledge (self, i, j):
         possibleCleanLocations = Or()
-        ...
-
         certainCleanLocations = And()
-        if board[i][j] == 1:
-            for cell in adjacentValidMoves:
-                sym = Symbol(self.symbolName(cell))
-                certainCleanLocations.add(sym)
+        cellKnowledge = And()
 
-        impossibleCleanLocations = And()
-        ...
+        count_adj_flags = self.countAdjacentSymbols(i, j, 'f')
+        adj_valid_moves = self.adjacentValidMoves(self.playerBoard, i, j)
+        try:
+            cell_number = self.playerBoard[i][j]
+            if count_adj_flags < self.playerBoard[i][j]:
+                for p in adj_valid_moves:
+                    sym = Symbol(self.symbolName(p))
+                    possibleCleanLocations.add(sym)
 
-        cellKnowledge = And(possibleCleanLocations, Not(impossibleCleanLocations), certainCleanLocations)
-        return cellKnowledge
+            elif count_adj_flags == cell_number:
+                    for p in adj_valid_moves:
+                        sym = Symbol(self.symbolName(p))
+                        certainCleanLocations.add(sym)
+
+            try:
+                tmp = possibleCleanLocations.symbols()
+                cellKnowledge.add(possibleCleanLocations)
+            except:
+                pass
+
+            try:
+                tmp = certainCleanLocations.symbols()
+                cellKnowledge.add(certainCleanLocations)
+            except:
+                pass
+        except:
+            pass
+
+        try:
+            tmp = cellKnowledge.symbols()
+            return cellKnowledge  
+        except:
+            return None
+
+    def countAdjacentSymbols (self, x, y, symbol):
+        count = 0
+        for i in s.adjacentCells(x, y):
+            if self.playerBoard[x][y] == symbol:
+                count+=1
+        return count
 
     def bestMove (self, knowledgeBoard):
         border_cells = s.adjacentToBorderCells(self, self.playerBoard)
         for cell in border_cells:
-            self.dropCellNum(cell[0], cell[1])
             # concat knowledge, first only from one cell, then from it and its adjacents with an adjustable max depth
             all_knowledge = self.concatCellKnowledge(knowledgeBoard, cell[0], cell[1])
             for adj in s.adjacentCells(cell[0], cell[1]):
+                #self.dropCellNum(adj[0], adj[1])
                 name = self.symbolName(adj)
                 if name not in self.checked:
                     query = Symbol(name)

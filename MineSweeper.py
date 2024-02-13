@@ -62,11 +62,12 @@ class Minesweeper:
             else:
                 # get adjacents of last revealed cells 
                 adj = self.adjacentBombsToBorderCells(board)
+                x_rand_adj, y_rand_adj = random.choice(adj)               
                 # swap one with a random 0
                 random_zero=self.pick_random_clean_cell(board)
                 if random_zero: 
                     board[random_zero[0]][random_zero[1]] = 'b'
-                    board[first_x][first_y] = 0
+                    board[x_rand_adj][y_rand_adj] = 0
         return board
 
     def checkSolvability (self, board):
