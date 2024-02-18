@@ -12,9 +12,6 @@ def placeSymbol(self, row, col, PLACEFLAG):
             print("You lose!")
             self.playing = False
             self.won = False
-        elif self.board[row][col] == 0:
-            self.revealCell(row, col)
-            self.revealWhite(row, col)
         else:
             self.revealCell(row, col)
 
@@ -23,20 +20,20 @@ def placeSymbol(self, row, col, PLACEFLAG):
             self.playing = False
             self.won = True
 
-def zeroCells (board):
+def zeroCells (playerBoard):
     zero_cells = []
-    for i in range(len(board)):
-        for j in range(len(board[i])):
-            if board[i][j] != 'b':
+    for i in range(len(playerBoard)):
+        for j in range(len(playerBoard[i])):
+            if playerBoard[i][j] == 0:
                 zero_cells.append((i, j))
     return zero_cells
 
-def adjacentToBorderCells(self, board):
+def adjacentToBorderCells(board, n):
     zero_cells = zeroCells(board)
     aobc = []
     for cell in zero_cells:
         for adj in adjacentCells(cell[0],cell[1]):
-            if inBounds(self, adj[0], adj[1]):
+            if inBounds(adj[0], adj[1], n):
                 aobc.append(adj)
     return aobc
 
@@ -52,14 +49,22 @@ def adjacentCells(x, y):
         (x - 1, y - 1)
     ]
 
-def inBounds(self, row, col):
-    if row < 0 or row >= self.n or col < 0 or col >= self.n:
+def inBounds(row, col, n):
+    if row < 0 or row >= n or col < 0 or col >= n:
         return False
     return True
 
 def returnPlayerBoard(self):
     return self.playerBoard
 
-def prinPlayerBoard(self):
+def printPlayerBoard(self):
     for i in range(len(self.playerBoard)):
         print(self.playerBoard[i])
+
+def printBoard(self):
+    for i in range(len(self.board)):
+        print(self.board[i])
+
+def printCustomBoard(board):
+    for i in range(len(board)):
+        print(board[i])

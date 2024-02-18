@@ -140,7 +140,7 @@ class Bot():
         return count
 
     def bestMove (self, knowledgeBoard):
-        border_cells = s.adjacentToBorderCells(self, self.playerBoard)
+        border_cells = s.adjacentToBorderCells(self.playerBoard, self.n)
         for cell in border_cells:
             # concat knowledge, first only from one cell, then from it and its adjacents with an adjustable max depth
             all_knowledge = self.concatCellKnowledge(knowledgeBoard, cell[0], cell[1])
@@ -150,8 +150,9 @@ class Bot():
                 if name not in self.checked:
                     query = Symbol(name)
                     self.checked.append(name)
+                    print(all_knowledge)
                     if model_check(all_knowledge, query):
-                        return cell  # coordinates
+                        return adj  # coordinates
         return None
 
     def dropCellNum (self, x, y):
@@ -189,7 +190,7 @@ class Bot():
         adjacents = s.adjacentCells(x, y)
         validMoves = []
         for i in adjacents:
-            if s.inBounds(self, i[0], i[1]) and board[i[0]][i[1]] == 0:
+            if s.inBounds(i[0], i[1], self.n) and board[i[0]][i[1]] == 0:
                 validMoves.append(i)
         return validMoves
 
